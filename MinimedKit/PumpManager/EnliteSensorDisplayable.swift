@@ -14,7 +14,7 @@ struct EnliteSensorDisplayable: Equatable, SensorDisplayable {
     public let isStateValid: Bool
     public let trendType: LoopKit.GlucoseTrend?
     public let isLocal: Bool
-
+    public var sensorStartDate: Date?
     public init(_ event: MinimedKit.RelativeTimestampedGlucoseEvent) {
         isStateValid = event.isStateValid
         trendType = event.trendType

@@ -59,6 +59,9 @@ public class MinimedPumpManager: RileyLinkPumpManager {
 
     public let stateObservers = WeakSynchronizedSet<MinimedPumpManagerStateObserver>()
 
+    // Last RileyLink Device used
+    public var lastDevice : String? = nil
+
     public var state: MinimedPumpManagerState {
         return lockedState.value
     }
@@ -741,10 +744,21 @@ extension MinimedPumpManager: PumpManager {
                 bolusState = .none
             }
         }
-        
+
+        let device = HKDevice(
+            name: type(of: self).managerIdentifier,
+            manufacturer: "Medtronic",
+            model: state.pumpModel.rawValue,
+            hardwareVersion: lastDevice,
+            firmwareVersion: state.pumpFirmwareVersion,
+            softwareVersion: String(MinimedKitVersionNumber),
+            localIdentifier: state.pumpID,
+            udiDeviceIdentifier: nil
+        )
+
         return PumpManagerStatus(
             timeZone: state.timeZone,
-            device: hkDevice,
+            device: device,
             pumpBatteryChargeRemaining: state.batteryPercentage,
             basalDeliveryState: basalDeliveryState,
             bolusState: bolusState
@@ -823,9 +837,10 @@ extension MinimedPumpManager: PumpManager {
                 self.pumpDelegate.notify({ (delegate) in
                     delegate?.pumpManager(self, didError: error)
                 })
+                self.lastDevice = nil
                 return
             }
-
+            self.lastDevice = device.debugDescription
             self.pumpOps.runSession(withName: "Get Pump Status", using: device) { (session) in
                 do {
                     let status = try session.getCurrentPumpStatus()
@@ -877,13 +892,24 @@ extension MinimedPumpManager: PumpManager {
             return
         }
 
-
-        pumpOps.runSession(withName: "Bolus", using: rileyLinkDeviceProvider.firstConnectedDevice) { (session) in
-
+        rileyLinkDeviceProvider.getDevices { (devices) in
+            guard let device = devices.firstConnected else {
+                let error = PumpManagerError.connection(MinimedPumpManagerError.noRileyLink)
+                self.log.error("No devices found while fetching pump data")
+                self.pumpDelegate.notify({ (delegate) in
+                    delegate?.pumpManager(self, didError: error)
+                })
+                self.lastDevice = nil
+                return
+            }
+            self.lastDevice = device.debugDescription
+            self.pumpOps.runSession(withName: "Bolus", using: device) { (session) in
+            /*
             guard let session = session else {
                 completion(.failure(SetBolusError.certain(PumpManagerError.connection(MinimedPumpManagerError.noRileyLink))))
                 return
             }
+            */
 
             if let unfinalizedBolus = self.state.unfinalizedBolus {
                 guard unfinalizedBolus.isFinished else {
@@ -978,6 +1004,7 @@ extension MinimedPumpManager: PumpManager {
                 self.recents.bolusEngageState = .stable
                 completion(.failure(error))
             }
+        }
         }
     }
 

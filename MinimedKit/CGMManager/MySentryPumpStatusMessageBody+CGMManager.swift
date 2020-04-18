@@ -60,4 +60,8 @@ extension MySentryPumpStatusMessageBody: SensorDisplayable {
 
         return "\(year)-\(month)-\(day) \(hour)-\(minute)-\(second)"
     }
+
+    public var sensorStartDate: Date? {
+        return nil
+    }
 }

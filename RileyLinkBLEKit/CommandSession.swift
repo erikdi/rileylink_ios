@@ -59,8 +59,11 @@ public struct RileyLinkStatistics {
     public let packetTxCount: UInt16
     public let crcFailureCount: UInt16
     public let spiSyncFailureCount: UInt16
+    public let voltageUSB: UInt16
+    public let voltageBAT: UInt16
     
-    public init(uptime: TimeInterval, radioRxOverflowCount: UInt16, radioRxFifoOverflowCount: UInt16, packetRxCount: UInt16, packetTxCount: UInt16, crcFailureCount: UInt16, spiSyncFailureCount: UInt16) {
+    public init(uptime: TimeInterval, radioRxOverflowCount: UInt16, radioRxFifoOverflowCount: UInt16, packetRxCount: UInt16, packetTxCount: UInt16, crcFailureCount: UInt16, spiSyncFailureCount: UInt16,
+                voltageUSB: UInt16, voltageBAT: UInt16) {
         self.uptime = uptime
         self.radioRxOverflowCount = radioRxOverflowCount
         self.radioRxFifoOverflowCount = radioRxFifoOverflowCount
@@ -68,6 +71,8 @@ public struct RileyLinkStatistics {
         self.packetTxCount = packetTxCount
         self.crcFailureCount = crcFailureCount
         self.spiSyncFailureCount = spiSyncFailureCount
+        self.voltageBAT = voltageBAT
+        self.voltageUSB = voltageUSB
     }
     
 }

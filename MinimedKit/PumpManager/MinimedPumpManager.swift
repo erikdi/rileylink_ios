@@ -15,6 +15,13 @@ public protocol MinimedPumpManagerStateObserver: class {
     func didUpdatePumpManagerState(_ state: MinimedPumpManagerState)
 }
 
+struct MinimedRileyLinkStatus {
+    var description : String?
+    var lastUpdated : Date?
+    var batteryVoltage : Double?
+    var chargerVoltage : Double?
+}
+
 public class MinimedPumpManager: RileyLinkPumpManager {
     public init(state: MinimedPumpManagerState, rileyLinkDeviceProvider: RileyLinkDeviceProvider, rileyLinkConnectionManager: RileyLinkConnectionManager? = nil, pumpOps: PumpOps? = nil) {
         self.lockedState = Locked(state)
@@ -61,6 +68,8 @@ public class MinimedPumpManager: RileyLinkPumpManager {
 
     // Last RileyLink Device used
     public var lastDevice : String? = nil
+
+    fileprivate var rileyLinkStatus : [String:MinimedRileyLinkStatus] = [:]
 
     public var state: MinimedPumpManagerState {
         return lockedState.value
@@ -756,13 +765,20 @@ extension MinimedPumpManager: PumpManager {
             udiDeviceIdentifier: nil
         )
 
-        return PumpManagerStatus(
+        var s = PumpManagerStatus(
             timeZone: state.timeZone,
             device: device,
             pumpBatteryChargeRemaining: state.batteryPercentage,
             basalDeliveryState: basalDeliveryState,
             bolusState: bolusState
         )
+        s.rileyLinkStatus = []
+        for d in self.rileyLinkStatus {
+            let x = d.value
+            let r = RileyLinkStatus(identifier: x.description ?? d.key, batteryVoltage: x.batteryVoltage, chargerVoltage: x.chargerVoltage)
+            s.rileyLinkStatus?.append(r)
+        }
+        return s
     }
     
     public var status: PumpManagerStatus {
@@ -818,6 +834,28 @@ extension MinimedPumpManager: PumpManager {
         rileyLinkDeviceProvider.timerTickEnabled = isPumpDataStale || mustProvideBLEHeartbeat
     }
 
+    public func assertStatistics(device: RileyLinkDevice) {
+        let id = device.peripheralIdentifier.uuidString
+        let status = self.rileyLinkStatus[id]
+        let lastUpdated = status?.lastUpdated ?? Date.distantPast
+        if abs(lastUpdated.timeIntervalSinceNow) < .minutes(30) {
+            return
+        }
+        self.pumpOps.runSession(withName: "Get Statistics for \(id)", using: device) { (session) in
+            do {
+                let stats = try session.getStatistics()
+                var newStatus = MinimedRileyLinkStatus()
+                newStatus.description = device.debugDescription
+                newStatus.lastUpdated = Date()
+                newStatus.batteryVoltage = Double(stats.voltageBAT) / 1000.0
+                newStatus.chargerVoltage = Double(stats.voltageUSB) / 1000.0
+                self.rileyLinkStatus[id] = newStatus
+                self.log.info("Updated statistics for %s to %s", id, String(describing: newStatus))
+            } catch let error {
+                self.log.error("assertStatistics Error: %s", String(describing: error))
+            }
+        }
+    }
     /**
      Ensures pump data is current by either waking and polling, or ensuring we're listening to sentry packets.
      */
@@ -841,6 +879,9 @@ extension MinimedPumpManager: PumpManager {
                 return
             }
             self.lastDevice = device.debugDescription
+            for d in devices {
+                self.assertStatistics(device: d)
+            }
             self.pumpOps.runSession(withName: "Get Pump Status", using: device) { (session) in
                 do {
                     let status = try session.getCurrentPumpStatus()

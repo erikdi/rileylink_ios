@@ -156,8 +156,14 @@ struct GetStatisticsResponse: Response {
         let packetTxCount = data[data.startIndex.advanced(by: 10)...].toBigEndian(UInt16.self)
         let crcFailureCount = data[data.startIndex.advanced(by: 12)...].toBigEndian(UInt16.self)
         let spiSyncFailureCount = data[data.startIndex.advanced(by: 14)...].toBigEndian(UInt16.self)
-        
-        self.statistics = RileyLinkStatistics(uptime: uptime, radioRxOverflowCount: radioRxOverflowCount, radioRxFifoOverflowCount: radioRxFifoOverflowCount, packetRxCount: packetRxCount, packetTxCount: packetTxCount, crcFailureCount: crcFailureCount, spiSyncFailureCount: spiSyncFailureCount)
+        var vusb : UInt16 = 0
+        var vbat : UInt16 = 0
+        if data.count >= 20 {
+            vusb = data[data.startIndex.advanced(by: 16)...].toBigEndian(UInt16.self)
+            vbat = data[data.startIndex.advanced(by: 18)...].toBigEndian(UInt16.self)
+        }
+        self.statistics = RileyLinkStatistics(uptime: uptime, radioRxOverflowCount: radioRxOverflowCount, radioRxFifoOverflowCount: radioRxFifoOverflowCount, packetRxCount: packetRxCount, packetTxCount: packetTxCount, crcFailureCount: crcFailureCount, spiSyncFailureCount: spiSyncFailureCount,
+                                              voltageUSB: vusb, voltageBAT: vbat)
     }
 }
 

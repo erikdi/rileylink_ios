@@ -161,6 +161,10 @@ extension RileyLinkDeviceManager {
 
         if let device = device {
             device.manager.peripheral = peripheral
+            device.setTimerTickEnabled(timerTickEnabled)
+            device.setIdleListeningState(idleListeningState)
+            log.info("Updated device for peripheral %@", peripheral)
+
         } else {
             device = RileyLinkDevice(peripheralManager: PeripheralManager(peripheral: peripheral, configuration: .rileyLink, centralManager: central, queue: sessionQueue))
             device.setTimerTickEnabled(timerTickEnabled)

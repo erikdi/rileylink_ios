@@ -845,7 +845,7 @@ extension MinimedPumpManager: PumpManager {
             do {
                 let stats = try session.getStatistics()
                 var newStatus = MinimedRileyLinkStatus()
-                newStatus.description = device.debugDescription
+                newStatus.description = device.name ?? id
                 newStatus.lastUpdated = Date()
                 newStatus.batteryVoltage = Double(stats.voltageBAT) / 1000.0
                 newStatus.chargerVoltage = Double(stats.voltageUSB) / 1000.0

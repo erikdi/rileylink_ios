@@ -1555,6 +1555,24 @@ extension OmnipodPumpManager: PumpManager {
         }
     }
 
+    public func reconnect(completion: @escaping (Error?) -> Void) {
+        rileyLinkDeviceProvider.getDevices { devices in
+            guard let device = devices.firstConnected else {
+                NSLog("No connected devices")
+                completion(PumpManagerError.connection(OmnipodPumpManagerError.noPodPaired))
+                return
+            }
+//            for device in devices {
+//                //if device.
+            NSLog("Reconnecting device \(device)")
+                self.rileyLinkConnectionManager?.disconnect(device)
+                self.rileyLinkConnectionManager?.connect(device)
+//            }
+           // rileyLinkDeviceProvider.
+            completion(nil)
+        }
+    }
+
     /// Returns a dose estimator for the current bolus, if one is in progress
     public func createBolusProgressReporter(reportingOn dispatchQueue: DispatchQueue) -> DoseProgressReporter? {
         if case .inProgress(let dose) = bolusState(for: self.state) {

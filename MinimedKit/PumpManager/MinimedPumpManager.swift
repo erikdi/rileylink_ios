@@ -822,6 +822,25 @@ extension MinimedPumpManager: PumpManager {
         setSuspendResumeState(state: .resume, completion: completion)
     }
 
+    public func reconnect(completion: @escaping (Error?) -> Void) {
+        rileyLinkDeviceProvider.getDevices { devices in
+            guard let device = devices.firstConnected else {
+                NSLog("No connected devices")
+                completion(PumpManagerError.connection(MinimedPumpManagerError.noRileyLink))
+                return
+            }
+//            for device in devices {
+//                //if device.
+            NSLog("Reconnecting device \(device)")
+                self.rileyLinkConnectionManager?.disconnect(device)
+
+                self.rileyLinkConnectionManager?.connect(device)
+//            }
+           // rileyLinkDeviceProvider.
+            completion(nil)
+        }
+    }
+
     public func addStatusObserver(_ observer: PumpManagerStatusObserver, queue: DispatchQueue) {
         statusObservers.insert(observer, queue: queue)
     }
@@ -929,7 +948,8 @@ extension MinimedPumpManager: PumpManager {
         let enactUnits = roundToSupportedBolusVolume(units: units)
 
         guard enactUnits > 0 else {
-            assertionFailure("Invalid zero unit bolus")
+            // assertionFailure("Invalid zero unit bolus")
+            completion(.failure(SetBolusError.certain(MinimedPumpManagerError.zeroBolus)))
             return
         }
 
@@ -941,6 +961,7 @@ extension MinimedPumpManager: PumpManager {
                     delegate?.pumpManager(self, didError: error)
                 })
                 self.lastDevice = nil
+                completion(.failure(SetBolusError.certain(error)))
                 return
             }
             self.lastDevice = device.debugDescription

@@ -11,6 +11,7 @@ public enum MinimedPumpManagerError: Error {
     case noRileyLink
     case bolusInProgress
     case noDate  // TODO: This is less of an error and more of a precondition/assertion state
+    case zeroBolus
     case tuneFailed(LocalizedError)
 }
 
@@ -23,6 +24,8 @@ extension MinimedPumpManagerError: LocalizedError {
         case .bolusInProgress:
             return nil
         case .noDate:
+            return nil
+        case .zeroBolus:
             return nil
         case .tuneFailed(let error):
             return [LocalizedString("RileyLink radio tune failed", comment: "Error description"), error.errorDescription].compactMap({ $0 }).joined(separator: ": ")
@@ -37,6 +40,8 @@ extension MinimedPumpManagerError: LocalizedError {
             return nil
         case .noDate:
             return nil
+        case .zeroBolus:
+            return nil
         case .tuneFailed(let error):
             return error.failureReason
         }
@@ -49,6 +54,8 @@ extension MinimedPumpManagerError: LocalizedError {
         case .bolusInProgress:
             return nil
         case .noDate:
+            return nil
+        case .zeroBolus:
             return nil
         case .tuneFailed(let error):
             return error.recoverySuggestion
